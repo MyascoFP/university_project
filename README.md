@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# university_project
-=======
 # university_project
 Этот проект визуализирует данные из датасета, содержащего информацию об университетах. Он позволяет пользователям сравнивать различные показатели, связанные с университетами, с помощью интерактивных дашбордов.
 Проект реализован в виде веб-приложения.
@@ -25,6 +22,3 @@ pip install pandas
 pip install dash
 pip install plotly
 pip install dash-bootstrap-components
-
-
->>>>>>> cd0e7f734b3e014cd01f0d054ce55b0ba6f07bb9
