@@ -4,8 +4,6 @@ import plotly.express as px
 import pandas as pd
 from data import df
 
-
-
 # Предобработка данных
 df['teaching'] = pd.to_numeric(df['teaching'], errors='coerce').fillna(0)
 df['research'] = pd.to_numeric(df['research'], errors='coerce').fillna(0)
@@ -44,27 +42,37 @@ layout = dbc.Container([
                 value='world_rank',
                 id='indicator-radioitems',
             ),
-        ], width=3),
+        ], width=3, style={'padding': '0px', 'margin-right': '0px'}),  # Убираем отступы
 
         dbc.Col([
+            html.H3(id='graph-title', style={'textAlign': 'center'}),
             dcc.Graph(id='line-graph', config={'displayModeBar': False})
-        ], width=9)
-    ])
+        ], width=9, style={'padding': '0px', 'margin-left': '0px'})  # Убираем отступы
+    ], style={'margin': '0px'})  # Убираем отступы между строками
 ], fluid=True)
 
-
 @callback(
-    Output('line-graph', 'figure'),
+    [Output('line-graph', 'figure'),
+     Output('graph-title', 'children')],
     Input('indicator-radioitems', 'value')
 )
 def update_line_graph(indicator):
     if indicator == 'world_rank':
+        title = 'Средний мировой рейтинг университетов по годам'
         fig = px.line(average_ranking, x='year', y='world_rank',
-                      title='Средний мировой рейтинг университетов по годам')
+                      labels={'year': 'Год', 'world_rank': 'Мировой рейтинг'})
     else:
+        indicator_labels = {
+            'teaching': 'Преподавание',
+            'research': 'Исследование',
+            'citations': 'Цитирование',
+            'income': 'Доход от индустрии'
+        }
+        title = f'Средний балл по критерию: {indicator_labels[indicator]} по годам'
         fig = px.line(average_scores, x='year', y=indicator,
-                      title=f'Средний балл по критерию: {indicator.capitalize()} по годам')
+                      labels={'year': 'Год', indicator: indicator_labels[indicator]})
 
+    fig.update_traces(mode='lines', line=dict(width=4, color='green'))  # Утолщаем линии и меняем цвет на зеленый
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0},
                       showlegend=False)
-    return fig
+    return fig, title
