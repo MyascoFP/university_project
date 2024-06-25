@@ -4,7 +4,6 @@ import plotly.express as px
 import pandas as pd
 from data import df
 
-
 # Преобразование столбцов в числовой формат, обработка ошибок и пропусков
 df['teaching'] = pd.to_numeric(df['teaching'], errors='coerce').fillna(0)
 df['research'] = pd.to_numeric(df['research'], errors='coerce').fillna(0)
@@ -15,7 +14,7 @@ df['world_rank'] = pd.to_numeric(df['world_rank'], errors='coerce').fillna(0)
 # Получение списка уникальных университетов
 universities = df['university_name'].unique()
 
-
+# Создание Dash приложения
 layout = dbc.Container([
     dbc.Row([
         html.Div([
@@ -78,8 +77,23 @@ def update_graphs(selected_university):
         labels={'year': 'Год', 'value': 'Баллы', 'variable': 'Критерий'}
     )
 
-    ranking_fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-    scores_fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    # Переводим критерии на русский
+    criteria_labels = {
+        'teaching': 'Преподавание',
+        'research': 'Исследования',
+        'citations': 'Цитирования',
+        'income': 'Доход от индустрии'
+    }
+    
+    # Обновляем линии графиков
+    ranking_fig.update_traces(mode='lines', line=dict(width=4))  # Утолщаем линии и убираем маркеры
+    scores_fig.update_traces(mode='lines', line=dict(width=4))  # Утолщаем линии и убираем маркеры
+
+    # Обновляем оси графиков
+    scores_fig.for_each_trace(lambda t: t.update(name=criteria_labels[t.name]))
+
+    ranking_fig.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
+    scores_fig.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
 
     return ranking_fig, scores_fig
 
