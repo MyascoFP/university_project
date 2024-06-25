@@ -27,9 +27,25 @@ universities = df['university_name'].unique()
 years = df['year'].unique()
 
 # Группировка данных по годам
-average_ranking = df.groupby('year')['world_rank'].mean().reset_index()
 average_scores = df.groupby('year')[['teaching', 'research', 'citations', 'income']].mean().reset_index()
 
+# Переводим критерии на русский
+criteria_labels = {
+    'teaching': 'Преподавание',
+    'research': 'Исследования',
+    'citations': 'Цитирования',
+    'income': 'Доход от индустрии'
+}
+
+# Создаем график средних баллов по критериям по годам с переводом на русский
+average_scores_fig = px.line(
+    average_scores, 
+    x='year', 
+    y=['teaching', 'research', 'citations', 'income'],
+    title='Средние баллы по критериям по годам',
+    labels={'year': 'Год', 'value': 'Баллы', 'variable': 'Критерий'}
+)
+average_scores_fig.for_each_trace(lambda t: t.update(name=criteria_labels[t.name]))
 
 layout = dbc.Container([
     dbc.Row([
@@ -53,15 +69,8 @@ layout = dbc.Container([
     ]),
     dbc.Row([
         dbc.Col(dcc.Graph(
-            id='average-world-ranking',
-            figure=px.line(average_ranking, x='year', y='world_rank', title='Средний мировой рейтинг университетов по годам')
-        ), className="mb-4")
-    ]),
-    dbc.Row([
-        dbc.Col(dcc.Graph(
             id='average-scores',
-            figure=px.line(average_scores, x='year', y=['teaching', 'research', 'citations', 'income'],
-                           title='Средние баллы по критериям по годам')
+            figure=average_scores_fig
         ), className="mb-4")
     ]),
     dbc.Row([
@@ -71,14 +80,18 @@ layout = dbc.Container([
         dbc.Col(dcc.Graph(id='criteria-comparison'), className="mb-4")
     ]),
     dbc.Row([
-        dbc.Col(dcc.Graph(id='grouped-bar-comparison'), className="mb-4")
+        dbc.Col(dcc.Graph(id='student-count-comparison'), className="mb-4")
+    ]),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='additional-bar-comparison'), className="mb-4")
     ])
 ], fluid=True)
 
 @callback(
     [Output('criteria-comparison', 'figure'),
      Output('ranking-comparison', 'figure'),
-     Output('grouped-bar-comparison', 'figure')],
+     Output('student-count-comparison', 'figure'),
+     Output('additional-bar-comparison', 'figure')],
     [Input('university-dropdown', 'value'),
      Input('year-dropdown', 'value')]
 )
@@ -91,18 +104,79 @@ def update_graphs(selected_universities, selected_year):
 
     # Проверка, что после фильтрации остались данные
     if filtered_data.empty:
-        return {}, {}, {}
+        return {}, {}, {}, {}
+
+    # Переводим критерии на русский
+    criteria_labels = {
+        'teaching': 'Преподавание',
+        'research': 'Исследования',
+        'citations': 'Цитирования',
+        'income': 'Доход от индустрии'
+    }
+
+    additional_labels = {
+        'num_students': 'Число студентов',
+        'student_staff_ratio': 'Соотношение студентов и преподавателей',
+        'international_students': 'Процент иностранных студентов'
+    }
 
     # Гистограмма: Сравнение баллов по критериям для выбранных университетов
-    criteria_comparison = px.bar(filtered_data, x='university_name', y=['teaching', 'research', 'citations', 'income'],
-                                 barmode='group', title=f'Сравнение баллов по критериям для выбранных университетов ({selected_year})')
+    criteria_comparison = px.bar(
+        filtered_data, 
+        x='university_name', 
+        y=['teaching', 'research', 'citations', 'income'],
+        barmode='group', 
+        title=f'Сравнение баллов по критериям для выбранных университетов ({selected_year})',
+        labels={'variable': 'Критерий', 'value': 'Баллы', 'university_name': 'Университет'}
+    )
+    
+    criteria_comparison.for_each_trace(lambda t: t.update(name=criteria_labels[t.name]))
 
     # Линейный график: Сравнение изменения мирового рейтинга для нескольких университетов по годам
-    ranking_comparison = px.line(filtered_data_1, x='year', y='world_rank', color='university_name',
-                                 title='Сравнение изменения мирового рейтинга для нескольких университетов по годам')
+    ranking_comparison = px.line(
+        filtered_data_1, 
+        x='year', 
+        y='world_rank', 
+        color='university_name',
+        title='Сравнение изменения мирового рейтинга для нескольких университетов по годам',
+        labels={'year': 'Год', 'world_rank': 'Мировой рейтинг', 'university_name': 'Университет'}
+    )
 
-    # Группированный столбчатый график: Сравнение численности студентов, соотношения студентов и преподавателей и процента иностранных студентов для выбранных университетов
-    grouped_bar_comparison = px.bar(filtered_data, x='university_name', y=['num_students', 'student_staff_ratio', 'international_students'],
-                                    barmode='group', title=f'Сравнение численности студентов, соотношения студентов и преподавателей и процента иностранных студентов для выбранных университетов ({selected_year})')
+    ranking_comparison.update_traces(mode='lines', line=dict(width=4))
 
-    return criteria_comparison, ranking_comparison, grouped_bar_comparison
+    # Столбчатый график: Сравнение численности студентов для выбранных университетов
+    student_count_comparison = px.bar(
+        filtered_data, 
+        x='university_name', 
+        y='num_students',
+        title=f'Сравнение численности студентов для выбранных университетов ({selected_year})',
+        labels={'num_students': 'Число студентов', 'university_name': 'Университет'},
+        text='num_students'
+    )
+
+    student_count_comparison.update_traces(marker_line_width=1.5, marker_line_color="black", width=0.3)  # Уменьшаем ширину столбцов
+
+    # Столбчатый график: Сравнение соотношения студентов и преподавателей и процента иностранных студентов для выбранных университетов
+    additional_bar_comparison = px.bar(
+        filtered_data, 
+        x='university_name', 
+        y=['student_staff_ratio', 'international_students'],
+        barmode='group', 
+        title=f'Сравнение соотношения студентов и преподавателей и процента иностранных студентов для выбранных университетов ({selected_year})',
+        labels={'variable': 'Показатель', 'value': 'Значение', 'university_name': 'Университет'}
+    )
+
+    additional_bar_comparison.for_each_trace(lambda t: t.update(name=additional_labels[t.name]))
+    additional_bar_comparison.update_traces(marker_line_width=1.5, marker_line_color="black", width=0.3)  # Уменьшаем ширину столбцов
+
+    # Обновление макетов графиков
+    criteria_comparison.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
+    ranking_comparison.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
+    student_count_comparison.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
+    additional_bar_comparison.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
+
+    return criteria_comparison, ranking_comparison, student_count_comparison, additional_bar_comparison
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
